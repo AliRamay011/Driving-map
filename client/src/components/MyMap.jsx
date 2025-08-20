@@ -25,29 +25,31 @@ const defaultCenter = {
 const LIBRARIES = ["places"];
 
 function MyMap() {
-
+  
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [location, setLocation] = useState(defaultCenter);
   const [showTraffic, setShowTraffic] = useState(false);
- const [directions, setDirections] = useState(null);
-const [routes, setRoutes] = useState([]);
-const [originInfo, setOriginInfo] = useState(null);
-const [destinationInfo, setDestinationInfo] = useState(null);
-const [routeInfo, setRouteInfo] = useState(null);
-const [map, setMap] = useState(null);
-const userMarkerRef = useRef(null);
-const [customLocations, setCustomLocations] = useState([]);
-const [selectedLocation, setSelectedLocation] = useState(null);
-
-useEffect(() => {
-    axios.get('http://localhost:5000/api/locations')
+  const [directions, setDirections] = useState(null);
+  const [routes, setRoutes] = useState([]);
+  const [originInfo, setOriginInfo] = useState(null);
+  const [destinationInfo, setDestinationInfo] = useState(null);
+  const [routeInfo, setRouteInfo] = useState(null);
+  const [map, setMap] = useState(null);
+  const userMarkerRef = useRef(null);
+  const [customLocations, setCustomLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const API_URL = import.meta.env.VITE_APP_URL ;
+  
+  useEffect(() => {
+    axios.get(`${API_URL}/api/locations`)
       .then(res => {
         console.log("Data from SQL:", res.data);
         setCustomLocations(res.data);
       })
       .catch(err => console.error(err));
   }, []);
+
 
 const homeIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
@@ -285,6 +287,7 @@ const handleSearch = async (fromLocation, toLocation) => {
     destinationInfo={destinationInfo}
     customLocations={customLocations}
     mapInstance={mapRef} 
+    setCustomLocations={setCustomLocations}
 
 />
 
@@ -333,10 +336,10 @@ const handleSearch = async (fromLocation, toLocation) => {
 {/* // Markers with onClick handler to set selectedLocation */}
 {!directions && Array.isArray(customLocations) && customLocations.map((loc, idx) => (
   <Marker
-  icon={homeIcon}
-    key={`custom-${idx}`}
-    position={{ lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) }}
-    onClick={() => setSelectedLocation(loc)}
+  key={`custom-${idx}`}
+  position={{ lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) }}
+  onClick={() => setSelectedLocation(loc)} 
+  icon ={homeIcon}  
   />
 ))}
 

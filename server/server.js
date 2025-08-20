@@ -10,6 +10,7 @@ import fs from "fs";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ __dirname setup for ES Modules
 const __filename = fileURLToPath(import.meta.url);

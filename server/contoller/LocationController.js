@@ -1,6 +1,6 @@
 // controllers/placesController.js
-import db from "../Config/db.js";
-
+import db from "../config/db.js";
+import bcrypt from 'bcrypt'
 // Get all places with images
 export const getAllPlaces = (req, res) => {
   const query = `
@@ -101,4 +101,103 @@ export const UpdatePlace = async (req, res) => {
 };
 
 
+
+export const Users = async (req, res) => {
+  const {
+    name,
+    username,
+    email,
+    phone,
+    password,
+    confirmPassword,
+    address,
+    dob,
+    gender
+  } = req.body;
+
+  if (!name || !username || !email || !password || !confirmPassword) {
+    return res.status(400).json({ message: "Required fields missing" });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const profile = req.file ? req.file.filename : null;
+
+  const query = `
+    INSERT INTO users 
+    (name, username, email, phone, password, address, dob, gender, profile) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  db.query(
+    query,
+    [name, username, email, phone, hashedPassword, address, dob, gender, profile],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+        
+        return res.status(500).json({ message: "Database error", error: err });
+      }
+      res.json({ message: "User registered successfully", userId: result.insertId });
+    }
+  );
+};
+
+
+export const UserGet = (req, res) => {
+  db.query("SELECT * FROM users", (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};
+
+export const UpdateUsers = (req, res) => {
+  const id = req.params.id;
+  if (!id) return res.status(400).json({ message: "Id Missing" });
+
+  const { name, username, email, phone, password, address, dob, gender, profile } = req.body;
+
+  const sql = "UPDATE users SET name=?, username=?, email=?, phone=?, password=?, address=?, dob=?, gender=?, profile=? WHERE id=?";
+  const values = [name, username, email, phone, password, address, dob, gender, profile, id];
+
+  db.query(sql, values, (err, result) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
+    if (result.affectedRows > 0) {
+      return res.status(200).json({
+        success: true,
+        message: "User updated",
+        user: { id, name, username, email, phone, password, address, dob, gender, profile }
+      });
+    } else {
+      return res.status(404).json({ message: "User not found" });
+    }
+  });
+};
+
+
+export const DeleteUsers = (req , res) =>{
+      try{
+  const id = req.params.id ; 
+       if(!id) return res.json({message : "Id Missing"})
+         
+        const result = db.query("DELETE FROM users WHERE id = ?" , [id] ) ;
+        if (result.affectedRows > 0) {
+      return res.status(200).json({ success: true, message: "User deleted successfully" });
+    } else {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    }
+  catch (err) {
+    console.error("DeletePlace error:", err);
+    return res.status(500).json({ success: false, message: "Server error while deleting User" });
+  }
+
+
+          
+
+}
 

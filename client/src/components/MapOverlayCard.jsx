@@ -7,7 +7,7 @@ import { LuArrowUpDown } from "react-icons/lu";
 import { FaLocationCrosshairs } from "react-icons/fa6";
 import Sidebar from "./SideBar";
 import BottomLocationPanel from "./BottomPlaceCard";
-
+import logo from '../img/logo.jpg'
 
 function MapSearchBox({
   from,
@@ -26,6 +26,7 @@ function MapSearchBox({
   originInfo,
   customLocations ,
    mapInstance,
+  //  setCustomLocations ,
 }) {
   console.log("check" , mapInstance)
   console.log("Origin Info:", originInfo);
@@ -104,18 +105,25 @@ console.log("backendmatches", backendMatches);
 }, [inputValue, customLocations]);
 
  
-
+// const addCustomLocation = (newLoc) => {
+//   setCustomLocations(prev => {
+//     // avoid duplicates
+//     const exists = prev.find(loc => loc.name === newLoc.name && loc.address === newLoc.address);
+//     if (exists) return prev;
+//     return [newLoc, ...prev];
+//   });
+// };
 
  const selectSuggestion = (suggestion) => {
    console.log("setsuggestion data" , suggestion);
    
     if (suggestion.type === "custom") {
-      const { lat, lng, name, address, description, photos } = suggestion.data || {};
+      const { lat, lng, name, address, description, photos } = suggestion.data || {} ;
       if (!lat || !lng ) {
         alert("Latitude ya Longitude missing hai is custom location ke liye");
         return;
       }
-      const latLng = { lat: parseFloat(lat), lng: parseFloat(lng) };
+      const latLng = { lat: parseFloat(lat), lng: parseFloat(lng)};
 
       if (mapInstance?.current) {
         mapInstance.current.panTo(latLng);
@@ -143,7 +151,10 @@ console.log("backendmatches", backendMatches);
         setToLocation(customData);
         if (fromLocation) onSearch(fromLocation, customData);
       }
-      setSuggestions([]);
+    setSuggestions(prev => [
+      { type: "custom", description: fullName, data: customData },
+      ...prev.filter(s => s.type !== "custom" || s.description !== fullName)
+    ]);
       if (onSelect) onSelect(customData);
       return;
     }
@@ -357,7 +368,7 @@ const handleKeyDown = (e) => {
           <span className="text-sm text-gray-600">Your Location</span>
         </div>
       {suggestions.length > 0 && (
-  <div className="mt-2 max-h-52 overflow-y-auto border-b border-gray-200 rounded-lg shadow-sm bg-white z-50">
+  <div className=" relative top-0 left-0 right-0 bottom-0 mt-2 max-h-52 overflow-y-auto border-b border-gray-200 rounded-lg shadow-sm bg-white z-50">
     {suggestions.map((suggestion, index) => (
       <div
         key={suggestion.place_id || suggestion.description || index}
@@ -365,7 +376,9 @@ const handleKeyDown = (e) => {
         className={`p-2 cursor-pointer text-sm transition ${
           index === keyboardIndex ? "bg-blue-100" : "hover:bg-gray-100"
         }`}
-      >
+      > 
+          {suggestion.type === "custom" && <img src={logo} className="w-4 h-4  absolute right-2 " />}
+
         {suggestion.description}
         <div className="border-b border-gray-200 mt-1" />
       </div>
