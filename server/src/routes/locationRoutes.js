@@ -1,7 +1,7 @@
 import express from "express";
-import { getAllPlaces, addPlace , DeletePlace, UpdatePlace, Users, UserGet, UpdateUsers, DeleteUsers} from "../contoller/LocationController.js";
-import { AdminLogin,  getAdmin,  UpdateAdmin } from "../contoller/adminController.js";
-import upload from "../middleWare/multerConfig.js"; // ✅ multer config import
+import { getAllPlaces, addPlace , DeletePlace, UpdatePlace, Users, UserGet, UpdateUsers, DeleteUsers} from "../controller/LocationController.js";
+import { AdminLogin,  getAdmin,  UpdateAdmin } from "../controller/adminController.js";
+import upload from "../middleware/multerConfig.js"; // ✅ multer config import
 
 const router = express.Router();
 

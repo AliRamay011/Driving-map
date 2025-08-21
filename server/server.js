@@ -1,6 +1,6 @@
 import express from "express";
-import Db from "./Config/db.js";
-import UserAuth from "./routes/locationRoutes.js";
+import  Db  from "./src/config/config.js";  
+import UserAuth from "./src/routes/locationRoutes.js";
 import bodyParser from "body-parser";
 import "dotenv/config";
 import cors from "cors";
@@ -31,13 +31,7 @@ app.use(bodyParser.json());
 app.use("/uploads", express.static(uploadPath));
 
 // Database connection
-Db.connect((err) => {
-  if (err) {
-    console.error("❌ Database connection error:", err.message);
-  } else {
-    console.log("✅ MySQL connected successfully!");
-  }
-});
+
 
 // Routes
 app.use("/api", UserAuth);

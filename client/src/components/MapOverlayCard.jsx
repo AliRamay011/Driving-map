@@ -1,4 +1,4 @@
-import React, { useEffect, useState} from "react";
+import React, {  useEffect, useRef, useState} from "react";
 import { IoMdMenu } from "react-icons/io";
 import { MdMyLocation } from "react-icons/md";
 import { GrLocation } from "react-icons/gr";
@@ -8,6 +8,7 @@ import { FaLocationCrosshairs } from "react-icons/fa6";
 import Sidebar from "./SideBar";
 import BottomLocationPanel from "./BottomPlaceCard";
 import logo from '../img/logo.jpg'
+import L from "leaflet";
 
 function MapSearchBox({
   from,
@@ -26,12 +27,13 @@ function MapSearchBox({
   originInfo,
   customLocations ,
    mapInstance,
-  //  setCustomLocations ,
+   fetchCustomLocations,
+
 }) {
-  console.log("check" , mapInstance)
-  console.log("Origin Info:", originInfo);
-  console.log("Destination Info:", destinationInfo);
-  console.log("custom" , customLocations) ;
+  // console.log("check" , mapInstance)
+  // console.log("Origin Info:", originInfo);
+  // console.log("Destination Info:", destinationInfo);
+  // console.log("custom location" , customLocations) ;
   
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,9 +43,11 @@ function MapSearchBox({
   const [keyboardIndex, setKeyboardIndex] = useState(-1);
   const [fromLocation, setFromLocation] = useState(null);
   const [toLocation, setToLocation] = useState(null);
-
+  const [showSuggestions, setShowSuggestions] = useState(false);
+const userMarkerRef = useRef(null);
 useEffect(() => {
-  console.log("useeffect" , customLocations);
+  fetchCustomLocations()
+  // console.log("useeffect customlocation" , customLocations);
   
   if (!inputValue) {
     setSuggestions([]);
@@ -61,14 +65,15 @@ useEffect(() => {
       }
 
       // Access the correct array inside customLocations
-    const locArray = Array.isArray(customLocations?.data) ? customLocations.data : [];
+       const locArray = Array.isArray(customLocations) ? customLocations : [];
 
 
-        console.log("locArray" ,locArray);
+
+
+        // console.log("locArray" ,locArray);
         
        // Backend Matches filter
-const backendMatches = locArray
-  .filter(
+const backendMatches = locArray.filter(
     (loc) =>
       loc.name.toLowerCase().includes(inputValue.toLowerCase()) ||
       loc.address.toLowerCase().includes(inputValue.toLowerCase())
@@ -86,135 +91,210 @@ const backendMatches = locArray
     },
   }));
 
-console.log("backendmatches", backendMatches);
-   
+// console.log("backendmatches", backendMatches);
+  //  
       // Typed Text Option
-      const typedOption = {
-        description: `Use "${inputValue}" as custom location`,
-        type: "typed",
-        data: { name: inputValue },
-      };
+      // const typedOption = {
+      //   description: `Use "${inputValue}" as custom location`,
+      //   type: "typed",
+      //   data: { name: inputValue },
+      // };
 
-      console.log("typed" , typedOption);
+      // console.log("typed" , typedOption);
       
-      setSuggestions([...backendMatches, ...googleResults, typedOption]);
+      setSuggestions([...backendMatches, ...googleResults]);
       
     }
 
   );
-}, [inputValue, customLocations]);
+}, [inputValue, customLocations , fetchCustomLocations ]);
+
+   const homeIcon = new L.Icon({
+     iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+     iconSize: [35, 35],
+     iconAnchor: [17, 35],
+     popupAnchor: [0, -30],
+   });
 
  
-// const addCustomLocation = (newLoc) => {
-//   setCustomLocations(prev => {
-//     // avoid duplicates
-//     const exists = prev.find(loc => loc.name === newLoc.name && loc.address === newLoc.address);
-//     if (exists) return prev;
-//     return [newLoc, ...prev];
-//   });
-// };
+const selectSuggestion = (suggestion) => {
+  setShowSuggestions(false);
 
- const selectSuggestion = (suggestion) => {
-   console.log("setsuggestion data" , suggestion);
-   
-    if (suggestion.type === "custom") {
-      const { lat, lng, name, address, description, photos } = suggestion.data || {} ;
-      if (!lat || !lng ) {
-        alert("Latitude ya Longitude missing hai is custom location ke liye");
-        return;
-      }
-      const latLng = { lat: parseFloat(lat), lng: parseFloat(lng)};
-
-      if (mapInstance?.current) {
-        mapInstance.current.panTo(latLng);
-        mapInstance.current.setZoom(14);
-      }
-
-      const fullName = `${name}, ${address}`;
-     const customData = {
-    name,
-    address,
-    description: description || "",
-    photos: photos || [], // ✅ Ensure photos is always array
-    type: "custom",       // Add type to identify later
-    lat: parseFloat(lat),
-    lng: parseFloat(lng),
-  };
-   console.log("images custom" , customData);
-   
-      if (activeInput === "from") {
-        setFrom(fullName);
-        setFromLocation(customData);
-        if (toLocation) onSearch(customData, toLocation);
-      } else {
-        setTo(fullName);
-        setToLocation(customData);
-        if (fromLocation) onSearch(fromLocation, customData);
-      }
-    setSuggestions(prev => [
-      { type: "custom", description: fullName, data: customData },
-      ...prev.filter(s => s.type !== "custom" || s.description !== fullName)
-    ]);
-      if (onSelect) onSelect(customData);
+  // ===== CUSTOM LOCATION =====
+  if (suggestion.type === "custom") {
+    const { lat, lng, name, address, description, photos } = suggestion.data || {};
+    if (!lat || !lng) {
+      console.log("Latitude ya Longitude missing hai is custom location ke liye");
       return;
     }
 
-    if (suggestion.type === "typed") {
-      alert("Typed location mein latitude aur longitude nahi hota");
-      setSuggestions([]);
-      return;
-    }
+    const latLng = { lat: parseFloat(lat), lng: parseFloat(lng) };
+    const fullName = `${name}, ${address}`;
+    const customData = {
+      name,
+      address,
+      description: description || "",
+      photos: photos || [],
+      type: "custom",
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+    };
 
-    if (!suggestion.place_id) {
-      alert("Place ID missing for Google place suggestion");
-      return;
-    }
+    if (mapInstance?.current) {
+      const marker = new window.google.maps.Marker({
+        position: latLng,
+        map: mapInstance.current,
+        title: customData.name,
+        icon: homeIcon,
+        draggable: true,
+      });
 
-    const placesService = new window.google.maps.places.PlacesService(document.createElement("div"));
-    placesService.getDetails(
-      {
-        placeId: suggestion.place_id,
-        fields: [
-          "name",
-          "formatted_address",
-          "geometry",
-          "photos",
-          "rating",
-          "user_ratings_total",
-          "reviews",
-        ],
-      },
-      (place, status) => {
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
-          const latLng = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng(),
-            name: place.name,
-            address: place.formatted_address,
-            photos: place.photos?.map((p) => p.getUrl()) || [],
-            rating: place.rating,
-            totalRatings: place.user_ratings_total,
-            reviews: place.reviews,
-          };
-
-          if (activeInput === "from") {
-            setFrom(suggestion.description);
-            setFromLocation(latLng);
-            if (toLocation) onSearch(latLng, toLocation);
-          } else {
-            setTo(suggestion.description);
-            setToLocation(latLng);
-            if (fromLocation) onSearch(fromLocation, latLng);
+      // Marker drag event
+      marker.addListener("dragend", (event) => {
+        const newLatLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: newLatLng }, (results, status) => {
+          if (status === "OK" && results.length > 0) {
+            const address = results[0].formatted_address;
+            if (activeInput === "from") {
+              setFrom(address);
+              setFromLocation({ ...customData, ...newLatLng, address });
+            } else {
+              setTo(address);
+              setToLocation({ ...customData, ...newLatLng, address });
+            }
+            if (fromLocation && toLocation) {
+              onSearch(
+                { ...fromLocation, ...newLatLng },
+                { ...toLocation, ...newLatLng }
+              );
+            }
           }
-          setSuggestions([]);
-          setKeyboardIndex(-1);
-          if (onSelect) onSelect(latLng);
-        } else {
-          alert("Failed to get location details. Try again.");
+        });
+      });
+
+      if (userMarkerRef.current) userMarkerRef.current.setMap(null);
+      userMarkerRef.current = marker;
+
+      mapInstance.current.panTo(latLng);
+      mapInstance.current.setZoom(16);
+    }
+
+    if (activeInput === "from") {
+      setFrom(fullName);
+      setFromLocation(customData);
+      setInputValue(suggestion.description);
+      if (toLocation) onSearch(customData, toLocation);
+    } else {
+      setTo(fullName);
+      setToLocation(customData);
+      setInputValue(suggestion.description);
+      if (fromLocation) onSearch(fromLocation, customData);
+    }
+
+    setSuggestions([]);
+    setKeyboardIndex(-1);
+    if (onSelect) onSelect(customData);
+    return;
+  }
+
+  // ===== GOOGLE PLACE SUGGESTION =====
+  if (!suggestion.place_id) {
+    alert("Place ID missing for Google place suggestion");
+    return;
+  }
+
+  const placesService = new window.google.maps.places.PlacesService(document.createElement("div"));
+  placesService.getDetails(
+    {
+      placeId: suggestion.place_id,
+      fields: [
+        "name",
+        "formatted_address",
+        "geometry",
+        "photos",
+        "rating",
+        "user_ratings_total",
+        "reviews",
+      ],
+    },
+    (place, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+        const latLng = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+          name: place.name,
+          address: place.formatted_address,
+          photos: place.photos?.map((p) => p.getUrl()) || [],
+          rating: place.rating,
+          totalRatings: place.user_ratings_total,
+          reviews: place.reviews,
+        };
+
+        if (mapInstance?.current) {
+          const marker = new window.google.maps.Marker({
+            position: latLng,
+            map: mapInstance.current,
+            title: latLng.name,
+            icon: homeIcon,
+            draggable: true,
+          });
+
+          // Marker drag event
+          marker.addListener("dragend", (event) => {
+            const newLatLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ location: newLatLng }, (results, status) => {
+              if (status === "OK" && results.length > 0) {
+                const address = results[0].formatted_address;
+                if (activeInput === "from") {
+                  setFrom(address);
+                  setFromLocation({ ...latLng, ...newLatLng, address });
+                  setInputValue(address)
+                } else {
+                  setTo(address);
+                  setToLocation({ ...latLng, ...newLatLng, address });
+                  setInputValue(address)
+                }
+                if (fromLocation && toLocation) {
+                  onSearch(
+                    { ...fromLocation, ...newLatLng },
+                    { ...toLocation, ...newLatLng }
+                  );
+                }
+              }
+            });
+          });
+
+          if (userMarkerRef.current) userMarkerRef.current.setMap(null);
+          userMarkerRef.current = marker;
+
+          mapInstance.current.panTo(latLng);
+          mapInstance.current.setZoom(16);
         }
+
+        if (activeInput === "from") {
+          setFrom(suggestion.description);
+          setFromLocation(latLng);
+          setInputValue(suggestion.description);
+          if (toLocation) onSearch(latLng, toLocation);
+        } else {
+          setTo(suggestion.description);
+          setToLocation(latLng);
+          setInputValue(suggestion.description);
+          if (fromLocation) onSearch(fromLocation, latLng);
+        }
+
+        setSuggestions([]);
+        setKeyboardIndex(-1);
+        if (onSelect) onSelect(latLng);
+      } else {
+        alert("Failed to get location details. Try again.");
       }
-    );
-  };
+    }
+  );
+};
+
 
 const handleKeyDown = (e) => {
   if (e.key === "ArrowDown") {
@@ -226,7 +306,8 @@ const handleKeyDown = (e) => {
       e.preventDefault();
       selectSuggestion(suggestions[keyboardIndex]);
       setInputValue(suggestions[keyboardIndex].description);
-      setSuggestions([]);
+      setSuggestions([])
+      setShowSuggestions(false)
       setKeyboardIndex(-1);
     }
   } else if (e.key === "Escape") {
@@ -322,12 +403,13 @@ const handleKeyDown = (e) => {
                 onFocus={() => {
                   setActiveInput("from");
                   setInputValue(from);
+                  setShowSuggestions(true)
                 }}
                 onChange={(e) => {
                   setFrom(e.target.value);
                   setActiveInput("from");
                   setInputValue(e.target.value); 
-                  // fetchSuggestions(e.target.value)  
+                   setShowSuggestions(true)
                 }}
                 onKeyDown={handleKeyDown}
                 className="flex-1 bg-transparent text-sm px-3 text-gray-500  placeholder-gray-300 focus:outline-none "
@@ -342,11 +424,13 @@ const handleKeyDown = (e) => {
                 onFocus={() => {
                   setActiveInput("to");
                   setInputValue(to);
+                  setShowSuggestions(true)
                 }}
                 onChange={(e) => {
                   setTo(e.target.value);
                   setActiveInput("to");
                   setInputValue(e.target.value);
+                   setShowSuggestions(true)
                 }}
                 onKeyDown={handleKeyDown}
                 className="flex-1 bg-transparent text-sm text-gray-500 ml-2 placeholder-gray-300 focus:outline-none"
@@ -367,24 +451,24 @@ const handleKeyDown = (e) => {
           <FaLocationCrosshairs className="text-blue-500 text-lg" />
           <span className="text-sm text-gray-600">Your Location</span>
         </div>
-      {suggestions.length > 0 && (
-  <div className=" relative top-0 left-0 right-0 bottom-0 mt-2 max-h-52 overflow-y-auto border-b border-gray-200 rounded-lg shadow-sm bg-white z-50">
-    {suggestions.map((suggestion, index) => (
+   {showSuggestions &&
+  [...new Map(suggestions.map(item => [item.description, item])).values()].map(
+    (suggestion, index) => (
       <div
         key={suggestion.place_id || suggestion.description || index}
         onMouseDown={() => selectSuggestion(suggestion)}
         className={`p-2 cursor-pointer text-sm transition ${
           index === keyboardIndex ? "bg-blue-100" : "hover:bg-gray-100"
         }`}
-      > 
-          {suggestion.type === "custom" && <img src={logo} className="w-4 h-4  absolute right-2 " />}
-
+      >
+        {suggestion.type === "custom" && <img src={logo} className="w-4 h-4 absolute right-2" />}
         {suggestion.description}
         <div className="border-b border-gray-200 mt-1" />
       </div>
-    ))}
-  </div>
-)}
+    )
+  )}
+
+
 
         {hasRoute && routeInfo && (
          <BottomLocationPanel

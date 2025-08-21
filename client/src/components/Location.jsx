@@ -1,7 +1,7 @@
-import React, { useState, useCallback,  useEffect, useRef } from "react";
+import React, { useState, useCallback,  useEffect, useRef, useContext } from "react";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
+import { CustomLocationContext } from "./CustomLocationContext";
 import { IoMdClose } from "react-icons/io";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -30,7 +30,7 @@ const SmallMap = React.memo(
     useEffect(() => {
       if (isLoaded && window.google && !autocompleteService.current) {
         autocompleteService.current = new window.google.maps.places.AutocompleteService();
-            console.log("AutocompleteService initialized", autocompleteService.current);
+            // console.log("AutocompleteService initialized", autocompleteService.current);
 
       }
     }, [isLoaded]);
@@ -52,8 +52,8 @@ const SmallMap = React.memo(
               window.google.maps.places.PlacesServiceStatus.OK &&
             predictions
           ) {
-            console.log("Predictions:", predictions);  // <-- yaha dekho suggestions
-      console.log("Status:", status);   
+      //       console.log("Predictions:", predictions);  // <-- yaha dekho suggestions
+      // console.log("Status:", status);   
             setSuggestions(predictions);
           } else {
             setSuggestions([]);
@@ -140,7 +140,7 @@ const SmallMap = React.memo(
           value={query}
           placeholder="Search place..."
          onChange={(e) => {
-    console.log("Input changed:", e.target.value);
+    // console.log("Input changed:", e.target.value);
     setQuery(e.target.value);
   }}
           onKeyDown={handleKeyDown}
@@ -182,7 +182,7 @@ const SmallMap = React.memo(
  const libraries = ["places"];
 // ----------------------------- Location -----------------------------
 export default function Locations() {
-  const [customLocations, setCustomLocations] = useState([]);
+  // const [customLocations, setCustomLocations] = useState([]);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
@@ -201,19 +201,20 @@ export default function Locations() {
   const [update, setUpdate] = useState(false);
   const mapRef = useRef(null);
    const API_URL = import.meta.env.VITE_APP_URL ;
- 
+      const { customLocations , fetchCustomLocations } = useContext(CustomLocationContext);
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY",
     libraries: libraries,
   });
  
   // Fetch Locations
-  useEffect(() => {
-    axios
-      .get(`${API_URL}/api/locations`)
-      .then((res) => setCustomLocations(res.data.data))
-      .catch((err) => console.error(err));
-  }, []);
+  // useEffect(() => {
+  //   axios
+  //     .get(`${API_URL}/api/locations`)
+  //     .then((res) => setCustomLocations(res.data.data))
+  //     .catch((err) => console.error(err));
+  // }, []);
 
   // ----------------------------- Add Location -----------------------------
   const handlePhotoUpload = (e) => {
@@ -246,6 +247,7 @@ export default function Locations() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed");
+      fetchCustomLocations()
       toast.success("Place added successfully!");
       setName("");
       setAddress("");
@@ -254,8 +256,8 @@ export default function Locations() {
       setImages([]);
       setPreviewUrls([]);
       setLocationPopUp(false);
-      const updated = await axios.get(`${API_URL}/api/locations`);
-      setCustomLocations(updated.data.data);
+      // const updated = await axios.get(`${API_URL}/api/locations`);
+      // setCustomLocations(updated.data.data);
     } catch (err) {
       console.error(err);
       toast.error("Error adding place");
@@ -267,8 +269,9 @@ export default function Locations() {
     try {
       const res = await axios.delete(`${API_URL}/api/places/${id}`);
       if (res.data.success) {
+        fetchCustomLocations()
         toast.success("Deleted successfully!");
-        setCustomLocations((prev) => prev.filter((loc) => loc.id !== id));
+        // setCustomLocations((prev) => prev.filter((loc) => loc.id !== id));
       }
     } catch (err) {
       console.error(err);
@@ -309,11 +312,12 @@ export default function Locations() {
       );
       if (res.data.success) {
         toast.success("Location updated successfully!");
-        setCustomLocations((prev) =>
-          prev.map((loc) =>
-            loc.id === currentUpdateId ? { ...loc, ...updatedData } : loc
-          )
-        );
+        fetchCustomLocations()
+        // setCustomLocations((prev) =>
+        // //   prev.map((loc) =>
+        // //     loc.id === currentUpdateId ? { ...loc, ...updatedData } : loc
+        // //   )
+        // // );
         setUpdate(false);
       } else {
         toast.error("Failed to update location");
