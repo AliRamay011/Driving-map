@@ -52,6 +52,7 @@ export const getAdmin = async (req, res) => {
     const admin = await admins.findOne({
       attributes: ["id", "email"],
       order: [["id", "ASC"]],
+      
     });
     if (!admin) return res.status(404).json({ message: "No admin found" });
     res.json({ admin });

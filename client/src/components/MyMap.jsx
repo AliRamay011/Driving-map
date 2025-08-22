@@ -15,7 +15,6 @@ import {
 } from "@react-google-maps/api";
 import Menu from "./Menu";
 import MapSearchBox from "./MapOverlayCard"; // bottom card
-import L from "leaflet";
 import { CustomLocationContext } from "./CustomLocationContext";
 
 const containerStyle = {
@@ -23,10 +22,7 @@ const containerStyle = {
   height: "633px",
 };
 
-// const defaultCenter = {
-//   lat: 33.6844,
-//   lng: 73.0479,
-// };
+
 
 const LIBRARIES = ["places"];
 
@@ -49,12 +45,6 @@ function MyMap() {
     CustomLocationContext
   );
 
-  const homeIcon = new L.Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-    iconSize: [35, 35],
-    iconAnchor: [17, 35],
-    popupAnchor: [0, -30],
-  });
 
   const mapRef = useRef(null); // 👈 Map ref
 
@@ -68,6 +58,7 @@ function MyMap() {
       mapRef.current.setZoom(15); // or whatever zoom
     }
   };
+  
 
   // Pan map when location changes (only before directions are shown)
   useEffect(() => {
@@ -78,141 +69,141 @@ function MyMap() {
   }, [location, directions]);
 
   // 🚗 Search for directions + place info
-  const handleSearch = async (fromLocation, toLocation) => {
-    if (!fromLocation || !toLocation) return;
+    const handleSearch = async (fromLocation, toLocation) => {
+      if (!fromLocation || !toLocation) return;
 
-    const directionsService = new window.google.maps.DirectionsService();
-    const placesService = new window.google.maps.places.PlacesService(
-      document.createElement("div")
-    );
+      const directionsService = new window.google.maps.DirectionsService();
+      const placesService = new window.google.maps.places.PlacesService(
+        document.createElement("div")
+      );
 
-    directionsService.route(
-      {
-        origin: fromLocation,
-        destination: toLocation,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      async (result, status) => {
-        if (status === "OK") {
-          setDirections(result);
-          setRoutes(result.routes);
+      directionsService.route(
+        {
+          origin: fromLocation,
+          destination: toLocation,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        async (result, status) => {
+          if (status === "OK") {
+            setDirections(result);
+            setRoutes(result.routes);
 
-          const leg = result?.routes?.[0]?.legs?.[0];
-          if (!leg) {
-            console.error("Leg not found in directions");
-            return;
-          }
+            const leg = result?.routes?.[0]?.legs?.[0];
+            if (!leg) {
+              console.error("Leg not found in directions");
+              return;
+            }
 
-          const originLocation = leg.start_location;
-          const destinationLocation = leg.end_location;
+            const originLocation = leg.start_location;
+            const destinationLocation = leg.end_location;
 
-          const fetchPlaceDetails = (query, callback) => {
-            placesService.findPlaceFromQuery(
-              {
-                query,
-                fields: ["place_id", "name", "formatted_address", "geometry"],
-              },
-              (results, placeStatus) => {
-                if (
-                  placeStatus ===
-                    window.google.maps.places.PlacesServiceStatus.OK &&
-                  results.length > 0
-                ) {
-                  const place = results[0];
-                  const request = {
-                    placeId: place.place_id,
-                    fields: [
-                      "name",
-                      "formatted_address",
-                      "geometry",
-                      "photos",
-                      "rating",
-                      "user_ratings_total",
-                    ],
-                  };
+            const fetchPlaceDetails = (query, callback) => {
+              placesService.findPlaceFromQuery(
+                {
+                  query,
+                  fields: ["place_id", "name", "formatted_address", "geometry"],
+                },
+                (results, placeStatus) => {
+                  if (
+                    placeStatus ===
+                      window.google.maps.places.PlacesServiceStatus.OK &&
+                    results.length > 0
+                  ) {
+                    const place = results[0];
+                    const request = {
+                      placeId: place.place_id,
+                      fields: [
+                        "name",
+                        "formatted_address",
+                        "geometry",
+                        "photos",
+                        "rating",
+                        "user_ratings_total",
+                      ],
+                    };
 
-                  placesService.getDetails(
-                    request,
-                    (details, detailsStatus) => {
-                      if (
-                        detailsStatus ===
-                          window.google.maps.places.PlacesServiceStatus.OK &&
-                        details
-                      ) {
-                        const photos =
-                          details.photos
-                            ?.slice(0, 6)
-                            .map((p) =>
-                              p.getUrl({ maxWidth: 500, maxHeight: 400 })
-                            ) || [];
+                    placesService.getDetails(
+                      request,
+                      (details, detailsStatus) => {
+                        if (
+                          detailsStatus ===
+                            window.google.maps.places.PlacesServiceStatus.OK &&
+                          details
+                        ) {
+                          const photos =
+                            details.photos
+                              ?.slice(0, 6)
+                              .map((p) =>
+                                p.getUrl({ maxWidth: 500, maxHeight: 400 })
+                              ) || [];
 
-                        callback({
-                          name: details.name,
-                          address: details.formatted_address,
-                          location: details.geometry?.location,
-                          rating: details.rating,
-                          totalRatings: details.user_ratings_total,
-                          photos,
-                        });
-                      } else {
-                        console.error(
-                          "Place details not found:",
-                          detailsStatus
-                        );
-                        callback(null);
+                          callback({
+                            name: details.name,
+                            address: details.formatted_address,
+                            location: details.geometry?.location,
+                            rating: details.rating,
+                            totalRatings: details.user_ratings_total,
+                            photos,
+                          });
+                        } else {
+                          console.error(
+                            "Place details not found:",
+                            detailsStatus
+                          );
+                          callback(null);
+                        }
                       }
-                    }
-                  );
-                } else {
-                  console.error("Place not found from query:", query);
-                  callback(null);
-                }
-              }
-            );
-          };
-
-          // Fetch origin info
-          fetchPlaceDetails(fromLocation.name || fromLocation, (originInfo) => {
-            if (originInfo) {
-              setOriginInfo(originInfo);
-
-              // Fetch destination info
-              fetchPlaceDetails(
-                toLocation.name || toLocation,
-                (destinationInfo) => {
-                  if (destinationInfo) {
-                    setDestinationInfo(destinationInfo);
-
-                    // Set final route info
-                    setRouteInfo({
-                      name: destinationInfo.name,
-                      address: destinationInfo.address,
-                      distance: leg.distance.text,
-                      duration: leg.duration.text,
-                      location: destinationLocation,
-                      rating: destinationInfo.rating,
-                      totalRatings: destinationInfo.totalRatings,
-                      photos: destinationInfo.photos,
-                      origin: originLocation,
-                    });
-
-                    // Fit map bounds
-                    const bounds = new window.google.maps.LatLngBounds();
-                    result.routes[0].overview_path.forEach((point) =>
-                      bounds.extend(point)
                     );
-                    mapRef.current.fitBounds(bounds);
+                  } else {
+                    console.error("Place not found from query:", query);
+                    callback(null);
                   }
                 }
               );
-            }
-          });
-        } else {
-          alert("Could not find directions: " + status);
+            };
+
+            // Fetch origin info
+            fetchPlaceDetails(fromLocation.name || fromLocation, (originInfo) => {
+              if (originInfo) {
+                setOriginInfo(originInfo);
+
+                // Fetch destination info
+                fetchPlaceDetails(
+                  toLocation.name || toLocation,
+                  (destinationInfo) => {
+                    if (destinationInfo) {
+                      setDestinationInfo(destinationInfo);
+
+                      // Set final route info
+                      setRouteInfo({
+                        name: destinationInfo.name,
+                        address: destinationInfo.address,
+                        distance: leg.distance.text,
+                        duration: leg.duration.text,
+                        location: destinationLocation,
+                        rating: destinationInfo.rating,
+                        totalRatings: destinationInfo.totalRatings,
+                        photos: destinationInfo.photos,
+                        origin: originLocation,
+                      });
+
+                      // Fit map bounds
+                      const bounds = new window.google.maps.LatLngBounds();
+                      result.routes[0].overview_path.forEach((point) =>
+                        bounds.extend(point)
+                      );
+                      mapRef.current.fitBounds(bounds);
+                    }
+                  }
+                );
+              }
+            });
+          } else {
+            alert("Could not find directions: " + status);
+          }
         }
-      }
-    );
-  };
+      );
+    };
 
   // 🚦 Toggle traffic layer
   useEffect(() => {
@@ -289,6 +280,7 @@ function MyMap() {
         customLocations={customLocations}
         mapInstance={mapRef}
         fetchCustomLocations={fetchCustomLocations}
+        setRouteInfo={setRouteInfo}
       />
 
       <LoadScript
@@ -334,22 +326,15 @@ function MyMap() {
           )}
 
           {/* // Markers with onClick handler to set selectedLocation */}
-          {Array.isArray(customLocations) &&
-            customLocations.map((loc, idx) => {
-              const lat = parseFloat(loc.lat);
-              const lng = parseFloat(loc.lng);
-              console.log("array is array ", lat);
+         {!directions && Array.isArray(customLocations) && customLocations.map((loc, idx) => (
+  <Marker
+    key={`custom-${idx}`}
+    position={{ lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) }}
+    // icon={homeIcon}
+    onClick={() => setSelectedLocation(loc)}
+  />
+))}
 
-           
-              return (
-                <Marker
-                  key={`custom-${idx}`}
-                  position={{ lat, lng }}
-                  onClick={() => setSelectedLocation(loc)}
-                  icon={homeIcon}
-                />
-              );
-            })}
 
           {selectedLocation && (
             <InfoWindow

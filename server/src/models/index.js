@@ -8,7 +8,8 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOSTNAME,
     dialect: "mysql",
-    // logging:"false"
+    logging:false ,
+  
   }
 );
 

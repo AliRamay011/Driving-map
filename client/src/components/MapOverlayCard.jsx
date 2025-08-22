@@ -9,6 +9,7 @@ import Sidebar from "./SideBar";
 import BottomLocationPanel from "./BottomPlaceCard";
 import logo from '../img/logo.jpg'
 import L from "leaflet";
+import toast from "react-hot-toast";
 
 function MapSearchBox({
   from,
@@ -27,13 +28,14 @@ function MapSearchBox({
   originInfo,
   customLocations ,
    mapInstance,
+   setRouteInfo ,
    fetchCustomLocations,
 
 }) {
   // console.log("check" , mapInstance)
   // console.log("Origin Info:", originInfo);
   // console.log("Destination Info:", destinationInfo);
-  // console.log("custom location" , customLocations) ;
+  console.log("custom root location" , setRouteInfo) ;
   
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -141,6 +143,12 @@ const selectSuggestion = (suggestion) => {
     };
 
     if (mapInstance?.current) {
+      // ❌ Remove previous marker before creating new one
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setMap(null);
+        userMarkerRef.current = null;
+      }
+
       const marker = new window.google.maps.Marker({
         position: latLng,
         map: mapInstance.current,
@@ -149,7 +157,6 @@ const selectSuggestion = (suggestion) => {
         draggable: true,
       });
 
-      // Marker drag event
       marker.addListener("dragend", (event) => {
         const newLatLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
         const geocoder = new window.google.maps.Geocoder();
@@ -173,9 +180,7 @@ const selectSuggestion = (suggestion) => {
         });
       });
 
-      if (userMarkerRef.current) userMarkerRef.current.setMap(null);
       userMarkerRef.current = marker;
-
       mapInstance.current.panTo(latLng);
       mapInstance.current.setZoom(16);
     }
@@ -232,6 +237,12 @@ const selectSuggestion = (suggestion) => {
         };
 
         if (mapInstance?.current) {
+          // ❌ Remove previous marker before creating new one
+          if (userMarkerRef.current) {
+            userMarkerRef.current.setMap(null);
+            userMarkerRef.current = null;
+          }
+
           const marker = new window.google.maps.Marker({
             position: latLng,
             map: mapInstance.current,
@@ -240,7 +251,6 @@ const selectSuggestion = (suggestion) => {
             draggable: true,
           });
 
-          // Marker drag event
           marker.addListener("dragend", (event) => {
             const newLatLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
             const geocoder = new window.google.maps.Geocoder();
@@ -250,11 +260,11 @@ const selectSuggestion = (suggestion) => {
                 if (activeInput === "from") {
                   setFrom(address);
                   setFromLocation({ ...latLng, ...newLatLng, address });
-                  setInputValue(address)
+                  setInputValue(address);
                 } else {
                   setTo(address);
                   setToLocation({ ...latLng, ...newLatLng, address });
-                  setInputValue(address)
+                  setInputValue(address);
                 }
                 if (fromLocation && toLocation) {
                   onSearch(
@@ -266,9 +276,7 @@ const selectSuggestion = (suggestion) => {
             });
           });
 
-          if (userMarkerRef.current) userMarkerRef.current.setMap(null);
           userMarkerRef.current = marker;
-
           mapInstance.current.panTo(latLng);
           mapInstance.current.setZoom(16);
         }
@@ -296,24 +304,142 @@ const selectSuggestion = (suggestion) => {
 };
 
 
+
 const handleKeyDown = (e) => {
   if (e.key === "ArrowDown") {
     setKeyboardIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
   } else if (e.key === "ArrowUp") {
     setKeyboardIndex((prev) => Math.max(prev - 1, 0));
-  } else if (e.key === "Enter") {
-    if (keyboardIndex >= 0 && suggestions[keyboardIndex]) {
-      e.preventDefault();
-      selectSuggestion(suggestions[keyboardIndex]);
-      setInputValue(suggestions[keyboardIndex].description);
-      setSuggestions([])
-      setShowSuggestions(false)
-      setKeyboardIndex(-1);
+  }
+  else if (e.key === "Enter") {
+  // ✅ Lat/Lng check
+  const latLngMatch = inputValue.match(/^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/);
+
+  if (latLngMatch) {
+    const lat = parseFloat(latLngMatch[1]);
+    const lng = parseFloat(latLngMatch[3]);
+
+    const latLngData = { lat, lng };
+
+    // ✅ Input me text waise hi rahe
+    if (activeInput === "from") setFrom(inputValue);
+    else setTo(inputValue);
+
+    // ✅ Location state route draw ke liye set karo
+    if (activeInput === "from") setFromLocation(latLngData);
+    else setToLocation(latLngData);
+
+    // ✅ Agar dono locations hain to route draw
+    if ((activeInput === "from" ? latLngData : fromLocation) &&
+        (activeInput === "to" ? latLngData : toLocation)) {
+      onSearch(
+        activeInput === "from" ? latLngData : fromLocation,
+        activeInput === "to" ? latLngData : toLocation
+      );
     }
-  } else if (e.key === "Escape") {
+
+    // ✅ Bottom panel ke liye address/photos fetch
+    handleLatLngInput(lat, lng, activeInput);
+
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setKeyboardIndex(-1);
+
+    // ✅ Ab yahan return karo taki baaki code execute na ho
+    return;
+  }
+
+  // 🟢 Baaki existing Enter key code waisa hi rahe
+  if (keyboardIndex >= 0 && suggestions[keyboardIndex]) {
+    e.preventDefault();
+    selectSuggestion(suggestions[keyboardIndex]);
+    setInputValue(suggestions[keyboardIndex].description);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setKeyboardIndex(-1);
+  }
+}
+
+
+  else if (e.key === "Escape") {
     setSuggestions([]);
     setKeyboardIndex(-1);
   }
+
+};
+
+const handleLatLngInput = (lat, lng) => {
+  const position = { lat, lng };
+
+  const geocoder = new window.google.maps.Geocoder();
+  geocoder.geocode({ location: position }, (results, status) => {
+    let address = `${lat}, ${lng}`; // default
+    if (status === "OK" && results.length > 0) {
+      address = results[0].formatted_address;
+    }
+
+    const service = new window.google.maps.places.PlacesService(document.createElement("div"));
+    service.nearbySearch({ location: position, radius: 1000 }, (places, placeStatus) => {
+      let name = "Custom Location";
+      let photos = [];
+      let rating = null;
+      let totalRatings = null;
+
+      if (placeStatus === window.google.maps.places.PlacesServiceStatus.OK && places.length > 0) {
+        const place = places[0];
+        name = place.name || name;
+        photos = place.photos?.slice(0, 6).map(p => p.getUrl({ maxWidth: 500, maxHeight: 400 })) || [];
+        rating = place.rating || null;
+        totalRatings = place.user_ratings_total || null;
+      }
+
+      const locationData = { lat, lng, name, address, photos, rating, totalRatings };
+
+      // Marker
+      if (mapInstance?.current) {
+        if (userMarkerRef.current) userMarkerRef.current.setMap(null);
+        const marker = new window.google.maps.Marker({
+          position,
+          map: mapInstance.current,
+          title: name,
+          icon: homeIcon,
+          draggable: true,
+        });
+
+        marker.addListener("dragend", (event) => {
+          handleLatLngInput(event.latLng.lat(), event.latLng.lng());
+        });
+
+        userMarkerRef.current = marker;
+        mapInstance.current.panTo(position);
+        mapInstance.current.setZoom(16);
+      }
+
+      // Update state & bottom panel
+      if (activeInput === "from") {
+        setFrom(`${lat}, ${lng}`); 
+        setFromLocation(locationData);
+        setInputValue(`${lat}, ${lng}`);
+      } else {
+        setTo(`${lat}, ${lng}`);
+        setToLocation(locationData);
+        setInputValue(`${lat}, ${lng}`);
+      }
+
+      setRouteInfo(locationData);
+      //  console.log('location data ' , locationData);
+       
+
+      // Draw route if both locations exist
+      if ((activeInput === "from" ? locationData : fromLocation) &&
+          (activeInput === "to" ? locationData : toLocation)) {
+        onSearch(
+          activeInput === "from" ? locationData : fromLocation,
+          activeInput === "to" ? locationData : toLocation
+        );
+      }
+    });
+  });
 };
 
 
@@ -338,22 +464,23 @@ const handleKeyDown = (e) => {
               results[0];
             const description = preferred.formatted_address;
             const locationData = { ...latLng, name: description };
-            if (window.confirm(`Use this location?\n${description}`)) {
               if (activeInput === "from") {
                 setFrom(description);
                 setFromLocation(locationData);
+                setActiveInput(suggestions.description) ;
               } else {
                 setTo(description);
+                setActiveInput(suggestions.description)
                 setToLocation(locationData);
               }
               setSuggestions([]);
               setKeyboardIndex(-1);
               if (onSelect) onSelect(locationData);
-            }
-          } else alert("Unable to detect a usable address.");
+            
+          } else toast.error("Unable to detect a usable address.");
         });
       },
-      (err) => alert("Location access denied or failed." , err),
+      (err) => toast.error("Location access denied or failed." , err),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
