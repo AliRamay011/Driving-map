@@ -45,7 +45,13 @@ const User = (sequelize) => {
     profile: {
       type: DataTypes.STRING(255),
       allowNull: true
-    }
+    },
+    role: {
+  type: DataTypes.STRING(255),
+  allowNull: false,
+  defaultValue: "user",
+}
+
   }, {
     sequelize,
     tableName: 'users',

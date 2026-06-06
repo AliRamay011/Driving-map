@@ -1,2 +1,9 @@
-.env
+# Node.js
 /node_modules
+.env
+npm-debug.log
+yarn-error.log
+.env
+.env.production
+server/.env
+server/.env.production

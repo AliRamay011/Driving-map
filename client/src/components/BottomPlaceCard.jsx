@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaDirections, FaShareAlt, FaSave } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 
@@ -11,13 +11,28 @@ const BottomLocationPanel = ({
   panTo,
   originLocation,
   destinationLocation,
+  setIsNavigating ,
 }) => {
  
+const [isMobile, setIsMobile] = useState(
+  window.innerWidth < 768
+);
 
-     console.log("Origin Info:", originInfo);
-  console.log("Origin Photos:", originInfo?.photos);
-  console.log("Destination Info:", destinationInfo);
-  console.log("Destination Photos:", destinationInfo?.photos);
+useEffect(() => {
+  const checkDevice = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+
+  checkDevice(); // run immediately
+
+  window.addEventListener("resize", checkDevice);
+  return () => window.removeEventListener("resize", checkDevice);
+}, []);
+  //    console.log("Origin Info:", originInfo);
+  // console.log("Origin Photos:", originInfo?.photos);
+  // console.log("Destination Info:", destinationInfo);
+  // console.log("Destination Photos:", destinationInfo?.photos);
+  // console.log("start navigation:", setIsNavigating);
     
 
   const [activeTab, setActiveTab] = useState("origin"); // NEW
@@ -26,20 +41,33 @@ const BottomLocationPanel = ({
       
   if (!info) return null;
 
- const BASE_URL = "http://localhost:5000"; // apna backend URL yahan
 
-  // 🔹 Prepare photo arrays
-  const originPhotos = originInfo?.photos
-    ? Array.isArray(originInfo.photos)
-      ? originInfo.photos.map((p) => (p.startsWith("http") ? p : `${BASE_URL}${p.trim()}`))
-      : originInfo.photos.split(",").map((p) => `${BASE_URL}${p.trim()}`)
-    : [];
 
-  const destinationPhotos = destinationInfo?.photos
-    ? Array.isArray(destinationInfo.photos)
-      ? destinationInfo.photos.map((p) => (p.startsWith("http") ? p : `${BASE_URL}${p.trim()}`))
-      : destinationInfo.photos.split(",").map((p) => `${BASE_URL}${p.trim()}`)
-    : [];
+const BASE_URL = import.meta.env.VITE_APP_URL;
+
+const getFullUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `${BASE_URL.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
+};
+const originPhotos = originInfo?.photos
+  ? originInfo.photos.map((p) => getFullUrl(p))
+  : [];
+
+const destinationPhotos = destinationInfo?.photos
+  ? destinationInfo.photos.map((p) => getFullUrl(p))
+  : [];
+
+
+
+
+
+
+
+  console.log(destinationPhotos);
+  
+
+
 
 
   const getArrivalTimeText = (route) => {
@@ -76,12 +104,15 @@ const sendMyLocation = () => {
   );
 };
 
+ 
+
 
   return (
 
     <>
-  
-    <div className="relative text-black w-[350px] overflow-y-auto">
+   {!isMobile && (
+
+    <div className="hidden md:block w-[350px] overflow-y-auto">
       <h3 className="text-base text-gray-500 mb-2 mt-4 border-b-[1px] pb-3">Routes</h3>
 
       <div className="border-b-[1px] pb-4 mt-4">
@@ -109,7 +140,7 @@ const sendMyLocation = () => {
 
       <div className="flex gap-4 text-xl mb-5 mt-5 ml-2 text-blue-600 dark:text-blue-400">
         <FaShareAlt title="Share" onClick={sendMyLocation} />
-        <FaDirections title="Directions" />
+        <FaDirections className="cursor-pointer" title="Directions" onClick={() => setIsNavigating(true)}/>
         <FaSave title="Save" />
       </div>
        {shareLocation && (
@@ -296,7 +327,13 @@ const sendMyLocation = () => {
 
       </div>
     </div>
+   )}
+
+   
+
+
     </>
+
   );
 };
 

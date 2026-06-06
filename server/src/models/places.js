@@ -27,6 +27,14 @@ const places = (sequelize)  => {
     longitude: {
       type: DataTypes.DECIMAL(11,8),
       allowNull: false
+    } ,
+    category: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    } ,
+    keywords: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     }
   }, {
     sequelize,

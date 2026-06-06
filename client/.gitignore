@@ -6,7 +6,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+.env
+.env.production
+client/.env
+client/.env.production
+server/.env
+server/.env.production
 node_modules
 dist
 dist-ssr

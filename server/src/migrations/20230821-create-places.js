@@ -1,9 +1,9 @@
 'use strict';
 
-const Places = {
+module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('places', {
-      id: { type: Sequelize.INTEGER, autoIncrement: true, primaryKey: true },
+      id: { type: Sequelize.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
       name: { type: Sequelize.STRING(255), allowNull: false },
       description: { type: Sequelize.TEXT, allowNull: true },
       address: { type: Sequelize.STRING(500), allowNull: true },
@@ -23,6 +23,5 @@ const Places = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('places');
-  },
+  }
 };
-export default  Places ;

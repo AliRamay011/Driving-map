@@ -3,16 +3,19 @@ import React from "react";
 import './index.css';
 import { Toaster } from 'react-hot-toast';
 import { Routes, Route, BrowserRouter } from 'react-router-dom';
-
 import { CustomLocationProvider } from "./components/CustomLocationContext"; // ✅ import context provider
 import Map from "./components/MyMap";
 import BottomPlaceCard from "./components/BottomPlaceCard";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 
 function App() {
+
+
   return ( 
-    <CustomLocationProvider> {/* ✅ wrap everything with context */}
+    <CustomLocationProvider>
       <Toaster
         position="top-right"
         reverseOrder={false}
@@ -62,7 +65,18 @@ function App() {
             } 
           />
           <Route path="/login" element={<Login/>} />
-          <Route path="/dashboard" element={<Dashboard />} />
+         <Route 
+  path="/dashboard" 
+  element={
+    <ProtectedRoute>
+       <Dashboard /> 
+    </ProtectedRoute>
+  } 
+/>
+
+
+
+          
         </Routes>
       </BrowserRouter>
     </CustomLocationProvider>

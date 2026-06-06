@@ -1,6 +1,6 @@
-import {DataTypes} from 'sequelize' 
+import { DataTypes } from 'sequelize'
 
-const PlaceImage = function(sequelize) {
+const PlaceImage = function (sequelize) {
   return sequelize.define('place_images', {
     id: {
       autoIncrement: true,

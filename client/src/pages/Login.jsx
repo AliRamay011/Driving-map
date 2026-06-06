@@ -10,70 +10,79 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_APP_URL ;
-  const handleLogin = async (e) => {
-    
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_URL}/api/admin/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+  const API_URL = import.meta.env.VITE_APP_URL;
 
-      const result = await response.json();
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await fetch(`${API_URL}/api/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password  }), // role yaha bhejne ki zarurat nahi
+    });
 
-      if (response.ok) {
-       toast.success("Login successful!")
+    const result = await response.json();
 
+    if (response.ok) {
+      
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("role", result.role);
+
+      if (result.role === "admin") {
         navigate("/dashboard");
-      } else {
-        toast.error(result.msg || "Invalid Credentials");
-      }
-    } catch (err) {
-      toast.error("Login error");
-     console.log(err);
-     
+        toast.success("Admin login successful!");
+      }  else if (result.role === "user") {
+  navigate("/dashboard");
+  toast.success("User login successful!");
+}
+    } else {
+      toast.error(result.msg || "Invalid Credentials");
     }
-  };
+  } catch (err) {
+    toast.error("Login error");
+    console.log(err);
+  }
+};
+
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      <Card className="w-full max-w-sm shadow-xl border border-gray-700 bg-gray-900">
-        <CardHeader>
-          <CardTitle className="text-center text-white text-2xl">
+    <div className="flex justify-center  items-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
+      <Card className="w-full max-w-md shadow-2xl border border-gray-700 bg-gray-900">
+        <CardHeader className="text-center">
+          <CardTitle className="text-white text-2xl font-bold">
             Welcome Back 👋
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label htmlFor="email" className="text-white">Email</Label>
+
+        <CardContent className="pt-2">
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Email */}
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-white font-medium">Email</Label>
               <Input
-                type="email"
                 id="email"
-                name="email"
+                type="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-gray-800 text-white border-gray-600"
+                className="bg-gray-800 text-white border-gray-600 focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <Label htmlFor="password" className="text-white">Password</Label>
+
+            {/* Password */}
+            <div className="space-y-1">
+              <Label htmlFor="password" className="text-white font-medium">Password</Label>
               <Input
-                type="password"
                 id="password"
-                name="password"
+                type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-gray-800 text-white border-gray-600"
+                className="bg-gray-800 text-white border-gray-600 focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 mt-4">
               Login
             </Button>
           </form>

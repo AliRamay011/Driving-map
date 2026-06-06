@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import menu from "../img/dots-menu.png";
 import dots from "../img/dots.png";
 import map from "../img/live-map.png";
@@ -7,10 +7,18 @@ import msg from "../img/msg.png";
 import web from "../img/web.png";
 import partner from "../img/partner.png";
 import Button from "./button";
+import ProfileDropdown from "./ProfileDropdown";
 function Menu() {
   const [isopen, setIsOpen] = useState(false);
+ const [ShowProfile , setshowProfile] =useState(false) 
+ const [ShowButton , setshowButton] =useState(true) 
  
- 
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    setshowProfile(loggedIn);
+    setshowButton(!loggedIn);
+  }, []);
+
   return (
     <>
       <div
@@ -18,6 +26,7 @@ function Menu() {
         onClick={() => setIsOpen(isopen === "menus" ? null : "menus")}
         checked={isopen}
       >
+  
         <img src={menu} className="w-[16px] h-[16px]" alt="" />
         <div
           className={`w-[240px] h-[300px] bg-white fixed top-[60px] z-50  right-[184px] shadow-md shadow-gray-700 rounded-xl ${
@@ -92,7 +101,7 @@ function Menu() {
             {/* Text section */}
             <div className="ml-3 flex flex-col justify-center w-full mt-6">
               <span className="text-[15px] font-medium text-gray-800 leading-none">
-                WazeOpedia
+                Myhighst
               </span>
               <hr className="mt-4 border-gray-300" />
             </div>
@@ -150,7 +159,16 @@ function Menu() {
           </div>
         </div>
       </div>
-      <Button/>
+     {ShowButton &&
+      <Button 
+      setshowButton={setshowButton}
+      setshowProfile={setshowProfile}
+      />
+      }
+      {ShowProfile &&
+            <ProfileDropdown    setshowButton={setshowButton}
+ />
+            }
     </>
   );
 }

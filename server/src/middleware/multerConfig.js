@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 // Storage settings
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../uploads")); // Save in uploads folder
+    cb(null, path.join(__dirname, "../../uploads")); // Save in uploads folder
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname)); // Unique file name

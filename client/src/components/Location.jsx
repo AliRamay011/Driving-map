@@ -1,17 +1,17 @@
 import React, { useState, useCallback,  useEffect, useRef, useContext } from "react";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CustomLocationContext } from "./CustomLocationContext";
+import {  CustomLocationContext } from "./CustomLocationContext";
 import { IoMdClose } from "react-icons/io";
 import axios from "axios";
 import toast from "react-hot-toast";
+const DEFAULT_CENTER = { lat: 4.2105, lng: 101.9758 }; 
 
 
 // ----------------------------- SmallMap Component -----------------------------
 const SmallMap = React.memo(
   ({
     marker,
-    selectedLocation,
     setMarker,
     setSelectedLocation,
     query,
@@ -120,7 +120,7 @@ const SmallMap = React.memo(
       const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
       setMarker(pos);
       setSelectedLocation(pos);
-    }, []);
+    }, [setMarker , setSelectedLocation]);
 
     const mapContainerStyle = { width: "100%", height: "100%" };
     const mapOptions = {
@@ -134,18 +134,37 @@ const SmallMap = React.memo(
 
     return (
       <div className="relative w-full h-40 rounded-md overflow-hidden border">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          placeholder="Search place..."
-         onChange={(e) => {
-    // console.log("Input changed:", e.target.value);
-    setQuery(e.target.value);
+       <input
+  ref={inputRef}
+  type="text"
+  value={query}
+  placeholder="Search place or enter lat,lng..."
+  onChange={(e) => {
+    const val = e.target.value;
+    setQuery(val);
+
+    // Check if input is in "lat,lng" format
+    const latLngMatch = val.match(
+      /^\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*$/
+    );
+    if (latLngMatch) {
+      const lat = parseFloat(latLngMatch[1]);
+      const lng = parseFloat(latLngMatch[3]);
+      const pos = { lat, lng };
+      setMarker(pos);
+      setSelectedLocation(pos);
+      if (mapRef.current) {
+        mapRef.current.panTo(pos);
+        mapRef.current.setZoom(14);
+      }
+      setSuggestions([]); // hide suggestions
+      setKeyboardIndex(-1);
+    }
   }}
-          onKeyDown={handleKeyDown}
-          className="w-60 absolute top-3 z-50 left-4 rounded-md px-3 py-2 border-b border-gray-300 focus:outline-none"
-        />
+  onKeyDown={handleKeyDown}
+  className="w-60 absolute top-3 z-50 left-4 rounded-md px-3 py-2 border-b border-gray-300 focus:outline-none"
+/>
+
 
        {suggestions.length > 0 && (
   <ul className="absolute top-[50px] left-4 right-4 max-h-20 max-w-64 overflow-y-auto bg-white border border-gray-300 rounded-md z-50 shadow-md mt-1 text-sm">
@@ -164,16 +183,27 @@ const SmallMap = React.memo(
 )}
 
 
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={selectedLocation}
-          zoom={14}
-          options={mapOptions}
-          onClick={onMapClick}
-          onLoad={(map) => (mapRef.current = map)}
-        >
-          {marker && <Marker position={marker} />}
-        </GoogleMap>
+       <GoogleMap
+  mapContainerStyle={mapContainerStyle}
+  center={DEFAULT_CENTER}
+  zoom={8}
+  options={mapOptions}
+  onClick={onMapClick}
+  onLoad={(map) => (mapRef.current = map)}
+>
+  {marker && (
+    <Marker
+      position={marker}
+      draggable={true} // ✅ draggable
+      onDragEnd={(e) => {
+        const newPos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        setMarker(newPos);
+        setSelectedLocation(newPos); // ✅ update state
+      }}
+    />
+  )}
+</GoogleMap>
+
       </div>
     );
   }
@@ -204,7 +234,7 @@ export default function Locations() {
       const { customLocations , fetchCustomLocations } = useContext(CustomLocationContext);
 
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ,
     libraries: libraries,
   });
  
@@ -238,14 +268,21 @@ export default function Locations() {
     fd.append("description", description);
     fd.append("latitude", marker.lat);
     fd.append("longitude", marker.lng);
+    fd.append("category", category);
+    fd.append("keywords", keywords);
     images.forEach((file) => fd.append("images", file));
+// console.log(images.forEach((file) => fd.append("images", file)));
 
     try {
       const res = await fetch(`${API_URL}/api/places`, {
         method: "POST",
         body: fd,
       });
-      const data = await res.json();
+      console.log(res, "response images");
+      
+      // const data = await res.json();
+       const data = await res.json().catch(() => ({})); // safe parse
+  console.log(data, "response images"); // yeh JSON print karega
       if (!res.ok) throw new Error(data?.error || "Failed");
       fetchCustomLocations()
       toast.success("Place added successfully!");
@@ -257,7 +294,7 @@ export default function Locations() {
       setPreviewUrls([]);
       setLocationPopUp(false);
       // const updated = await axios.get(`${API_URL}/api/locations`);
-      // setCustomLocations(updated.data.data);
+      // customLocations(updated.data.data);
     } catch (err) {
       console.error(err);
       toast.error("Error adding place");
@@ -330,7 +367,8 @@ export default function Locations() {
     }
   };
 
-
+ const [category, setCategory] = useState(""); // Dropdown
+  const [keywords, setKeywords] = useState("");
  
     
 
@@ -353,7 +391,7 @@ export default function Locations() {
               </div>
 
               {locationPopUp && (
-                <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+                <div className="fixed top-0  inset-0 bg-black/40 flex justify-center items-center z-50">
                   <div className="bg-white rounded-2xl shadow-lg w-[460px] max-h-[640px] p-1 relative">
                     <div className="flex justify-between items-center mb-2 sticky top-0 p-6 bg-white">
                       <h2 className="text-[22px] font-semibold text-black">
@@ -412,6 +450,36 @@ export default function Locations() {
                           className="w-full border border-gray-300 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
+                     <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Category *
+  </label>
+  <select
+    value={category}
+    onChange={(e) => setCategory(e.target.value)}
+    required
+    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="">Select Category</option>
+    <option value="shop">Shop</option>
+    <option value="restaurant">Restaurant</option>
+    <option value="office">Office</option>
+    <option value="other">Other</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Keywords
+  </label>
+  <input
+    type="text"
+    value={keywords}
+    onChange={(e) => setKeywords(e.target.value)}
+    placeholder="Comma-separated keywords, e.g., cafe, wifi"
+    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -481,10 +549,9 @@ export default function Locations() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Place Name</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -492,12 +559,9 @@ export default function Locations() {
                     {customLocations.length > 0 ? (
                       customLocations.map((loc, index) => (
                         <tr key={loc.id || index}>
-                          <td className="px-4 py-3 text-sm text-gray-700">{loc.id || index + 1}</td>
+                          <td className="px-4 py-3 text-sm font-medium capitalize text-gray-900">{loc.category}</td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{loc.name}</td>
                           <td className="px-4 py-3 text-sm text-gray-700">{loc.address}</td>
-                          <td className="px-4 py-3 text-sm font-semibold">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loc.status === "Completed" ? "bg-green-100 text-green-800" : loc.status === "Pending" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>{loc.status}</span>
-                          </td>
                           <td className="px-4 py-3 text-sm text-center space-x-2">
                             <button onClick={() => EditUpdate(loc)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">Edit</button>
                             <button onClick={() => handleDelete(loc.id)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium">Delete</button>
@@ -514,54 +578,154 @@ export default function Locations() {
 
                 {/* Update Modal */}
                 {update && (
-                  <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-                    <div className="bg-white rounded-2xl shadow-lg w-[460px] max-h-[640px] p-1 relative">
-                      <div className="flex justify-between items-center mb-2 sticky top-0 p-6 bg-white">
-                        <h2 className="text-[22px] font-semibold text-black">Update Place</h2>
-                        <button onClick={() => setUpdate(false)} className="text-gray-600 hover:text-gray-900">
-                          <IoMdClose size={26} />
-                        </button>
+                 <div className="fixed top-0  inset-0 bg-black/40 flex justify-center items-center z-50">
+                  <div className="bg-white rounded-2xl shadow-lg w-[460px] max-h-[640px] p-1 relative">
+                    <div className="flex justify-between items-center mb-2 sticky top-0 p-6 bg-white">
+                      <h2 className="text-[22px] font-semibold text-black">
+                        Add Missing Place
+                      </h2>
+                      <button
+                        onClick={() => setLocationPopUp(false)}
+                        className="text-gray-600 hover:text-gray-900"
+                      >
+                        <IoMdClose size={26} />
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={handleUpdateSubmit}
+                      className="space-y-5 overflow-y-auto h-[470px] py-4 px-6"
+                      encType="multipart/form-data"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Place Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Place name"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
                       </div>
 
-                      <form onSubmit={handleUpdateSubmit} className="space-y-5 overflow-y-auto h-[470px] py-4 px-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Place Name *</label>
-                          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Place name" className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Address *
+                        </label>
+                        <input
+                          type="text"
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          placeholder="Full address"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                          <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Full address" className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Add description (optional)"
+                          rows={3}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                     <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Category *
+  </label>
+  <select
+    value={category}
+    onChange={(e) => setCategory(e.target.value)}
+    required
+    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="">Select Category</option>
+    <option value="shop">Shop</option>
+    <option value="restaurant">Restaurant</option>
+    <option value="office">Office</option>
+    <option value="other">Other</option>
+  </select>
+</div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add description (optional)" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Keywords
+  </label>
+  <input
+    type="text"
+    value={keywords}
+    onChange={(e) => setKeywords(e.target.value)}
+    placeholder="Comma-separated keywords, e.g., cafe, wifi"
+    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Select Location on Map *</label>
-                          <SmallMap
-                            marker={marker}
-                            selectedLocation={selectedLocation}
-                            setMarker={setMarker}
-                            setSelectedLocation={setSelectedLocation}
-                            query={query}
-                            setQuery={setQuery}
-                            suggestions={suggestions}
-                            setSuggestions={setSuggestions}
-                            keyboardIndex={keyboardIndex}
-                            setKeyboardIndex={setKeyboardIndex}
-                            mapRef={mapRef}
-                            isLoaded={isLoaded}
-                          />
-                          {marker && <p className="mt-2 text-sm text-gray-600">Selected: {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}</p>}
-                        </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Select Location on Map *
+                        </label>
+                        <SmallMap
+                          marker={marker}
+                          selectedLocation={selectedLocation}
+                          setMarker={setMarker}
+                          setSelectedLocation={setSelectedLocation}
+                          query={query}
+                          setQuery={setQuery}
+                          suggestions={suggestions}
+                          setSuggestions={setSuggestions}
+                          keyboardIndex={keyboardIndex}
+                          setKeyboardIndex={setKeyboardIndex}
+                          mapRef={mapRef}
+                          isLoaded={isLoaded}
+                        />
+                        {marker && (
+                          <p className="mt-2 text-sm text-gray-600">
+                            Selected: {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}
+                          </p>
+                        )}
+                      </div>
 
-                        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md">Update</button>
-                      </form>
-                    </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Add Photos
+                        </label>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="w-full"
+                        />
+                        {previewUrls.length > 0 && (
+                          <div className="mt-2 grid grid-cols-4 gap-2">
+                            {previewUrls.map((url, idx) => (
+                              <img
+                                key={idx}
+                                src={url}
+                                alt={`preview-${idx}`}
+                                className="w-full h-16 object-cover rounded-md"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md"
+                      >
+update                      </button>
+                    </form>
                   </div>
+                </div>
                 )}
               </div>
             </CardContent>

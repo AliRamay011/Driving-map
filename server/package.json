@@ -4,26 +4,36 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "db:migrate": "sequelize db:migrate",
+    "model:generate": "sequelize model:generate",
+    "migration:generate": "sequelize migration:generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
+    "connect-session-sequelize": "^8.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
+    "esm": "^3.2.25",
     "express": "^5.1.0",
+    "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.0",
     "multer": "^2.0.2",
     "mysql2": "^3.14.3",
+    "nodemailer": "^7.0.6",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "routes": "^2.1.0",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "sequelize-auto": "^0.8.8",
     "sequelize-cli": "^6.6.3",
     "sequelize-mig": "^3.1.3",

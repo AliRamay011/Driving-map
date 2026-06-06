@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 const API_URL = import.meta.env.VITE_APP_URL ;
 
 function User() {
@@ -180,18 +181,20 @@ const DeleteUser = async (id) =>{
 }
 
   return (
-    <div className="p-6 space-y-8">
+    <Card>
+      <CardHeader>
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">👤 User Management</h1>
+     <CardTitle>Add User</CardTitle>
         <button
           onClick={() => setShowForm(true)}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all"
+           className="bg-black w-36 h-10 rounded-md text-white"
         >
-          ➕ Add User
+           Add User
         </button>
       </div>
-
+</CardHeader>
+<CardContent>
       {/* Add User Form */}
       {showForm && (
         <div className="bg-white shadow-xl rounded-xl p-6 border border-gray-200">
@@ -277,8 +280,7 @@ const DeleteUser = async (id) =>{
         <h2 className="text-xl font-semibold mb-4">Registered Users</h2>
 
         {/* Table Header */}
-        <div className="grid grid-cols-8 gap-4 bg-gray-100 text-gray-700 font-semibold px-4 py-2 rounded-lg">
-          <div>ID</div>
+        <div className="grid grid-cols-7 gap-4 bg-gray-100 text-gray-700 font-semibold px-4 py-2 rounded-lg">
           <div>Name</div>
           <div>Username</div>
           <div>Email</div>
@@ -293,11 +295,10 @@ const DeleteUser = async (id) =>{
           {users.map((user, index) => (
             <div
               key={index}
-              className="grid grid-cols-8 gap-4 items-center bg-white border rounded-lg px-4 py-3 shadow hover:shadow-md transition"
+              className="grid grid-cols-7 gap-4 items-center bg-white border rounded-lg px-4 py-3 shadow hover:shadow-md transition"
             >
-              <div className="font-medium text-gray-800">{user.id}</div>
               <div className="font-medium text-gray-800">{user.name}</div>
-              <div className="text-gray-600">@{user.username}</div>
+              <div className="text-gray-600">{user.username}</div>
               <div className="text-gray-600 truncate">{user.email}</div>
               <div className="text-gray-600">{user.phone}</div>
               <div className="capitalize">{user.gender}</div>
@@ -413,7 +414,9 @@ const DeleteUser = async (id) =>{
           </div>
         </div>
       )}
-    </div>
+    
+    </CardContent>
+    </Card>
   );
 }
 
