@@ -3,7 +3,7 @@ import Overview from "../components/Overview";
 import User from "../components/User";
 import Location from "../components/Location";
 import Setting from "../components/Setting";
-import  LogOut from '../components/logout';
+import  LogOut from '../components/LogOut';
 import axios from 'axios';
 import UserProfile from '../components/UserProfile';
 import UserSettings from '../components/UserSettings';
