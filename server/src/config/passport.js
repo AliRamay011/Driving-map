@@ -14,7 +14,7 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL:
         process.env.NODE_ENV === "production"
-          ? "https://driving-map-backend.onrender.com"
+          ? "https://driving-map-backend.onrender.com/api/google/callback"
           : "http://localhost:5000/api/google/callback",
     },
 
