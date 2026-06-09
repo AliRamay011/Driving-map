@@ -14,7 +14,7 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL:
         process.env.NODE_ENV === "production"
-          ? "https://mikhan.net/api/google/callback"
+          ? "https://driving-map-backend.onrender.com"
           : "http://localhost:5000/api/google/callback",
     },
 
